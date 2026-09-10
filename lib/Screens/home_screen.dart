@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/note.dart';
-import '../models/note_color.dart';
 import '../services/note_repository.dart';
-import '../theme/note_colors.dart';
+import '../widgets/note_card.dart';
+import '../widgets/search_bar_widget.dart';
 import 'note_editor_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,22 +34,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
 
-  String _formatDate(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: _isSearching
-            ? TextField(
+            ? SearchBarWidget(
                 controller: _searchCtrl,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Rechercher...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.black54),
-                ),
-                style: const TextStyle(color: Colors.black, fontSize: 18),
                 onChanged: (_) => _loadNotes(),
               )
             : const Text('Mes Notes'),
@@ -90,18 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 itemBuilder: (context, i) {
                   final note = _notes[i];
-                  String preview = '';
-                  if (note.type == NoteType.texte) {
-                    preview = note.contenuTexte ?? '';
-                  } else if (note.type == NoteType.checklist) {
-                    final items = note.items ?? [];
-                    final checked = items.where((it) => it.coche).length;
-                    preview = '$checked/${items.length} items';
-                  }
-
-                  final textColor = note.couleur.onBackground;
-
-                  return InkWell(
+                  return NoteCard(
+                    note: note,
                     onTap: () async {
                       await Navigator.push(
                         context,
@@ -111,46 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                       _loadNotes();
                     },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: note.couleur.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: note.couleur == NoteColor.blanc
-                            ? Border.all(color: Colors.grey.shade300, width: 1)
-                            : null,
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            note.titre,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: Text(
-                              preview,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.85)),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: Text(
-                              _formatDate(note.dateModification),
-                              style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.7)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   );
                 },
               ),
@@ -181,16 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) => NoteEditorScreen(
-                  existingNote: Note(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    titre: '',
-                    type: chosenType,
-                    contenuTexte: chosenType == NoteType.texte ? '' : null,
-                    items: chosenType == NoteType.checklist ? [] : null,
-                    couleur: NoteColor.jaune,
-                    dateCreation: DateTime.now(),
-                    dateModification: DateTime.now(),
-                  ),
+                  existingNote: null,
+                  initialType: chosenType,
                 ),
               ),
             );

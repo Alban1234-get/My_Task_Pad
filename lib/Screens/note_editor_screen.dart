@@ -1,15 +1,22 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/note.dart';
 import '../models/checklist_item.dart';
 import '../models/note_color.dart';
+import '../services/autosave_service.dart';
 import '../services/note_repository.dart';
-import '../theme/note_colors.dart';
+import '../widgets/checklist_item_tile.dart';
+import '../widgets/color_picker.dart';
 
 /// Écran d'édition ou de création de note (texte ou checklist) avec autosave.
 class NoteEditorScreen extends StatefulWidget {
   final Note? existingNote;
-  const NoteEditorScreen({super.key, this.existingNote});
+  final NoteType initialType;
+
+  const NoteEditorScreen({
+    super.key,
+    this.existingNote,
+    this.initialType = NoteType.texte,
+  });
 
   @override
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -17,10 +24,10 @@ class NoteEditorScreen extends StatefulWidget {
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBindingObserver {
   final NoteRepository _repo = NoteRepository();
+  final AutosaveService _autosaveService = AutosaveService();
   late Note _note;
   late TextEditingController _titleCtrl;
   late TextEditingController _textCtrl;
-  Timer? _debounceTimer;
   bool _hasUnsavedChanges = false;
   bool _isNewEmptyNote = false;
 
@@ -39,8 +46,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
       _note = Note(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         titre: '',
-        type: NoteType.texte,
-        contenuTexte: '',
+        type: widget.initialType,
+        contenuTexte: widget.initialType == NoteType.texte ? '' : null,
+        items: widget.initialType == NoteType.checklist ? [] : null,
         couleur: NoteColor.jaune,
         dateCreation: DateTime.now(),
         dateModification: DateTime.now(),
@@ -57,8 +65,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _saveImmediately();
-    _debounceTimer?.cancel();
+    _autosaveService.saveNow(_saveImmediately);
+    _autosaveService.dispose();
     _titleCtrl.dispose();
     _textCtrl.dispose();
     super.dispose();
@@ -67,11 +75,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      _saveImmediately();
+      _autosaveService.saveNow(_saveImmediately);
     }
   }
-
-
 
   void _onChanged() {
     _note.titre = _titleCtrl.text;
@@ -84,8 +90,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
   /// Planifie l'autosave avec debounce (700ms d'inactivité).
   void _scheduleAutosave() {
     _hasUnsavedChanges = true;
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 700), _saveImmediately);
+    _autosaveService.schedule(_saveImmediately);
   }
 
   /// Sauvegarde immédiate dans le repository.
@@ -123,7 +128,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
     );
 
     if (confirm == true) {
-      _debounceTimer?.cancel();
+      _autosaveService.cancel();
       _hasUnsavedChanges = false;
       await _repo.deleteNote(_note.id);
       if (mounted) Navigator.pop(context);
@@ -181,37 +186,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
                           final item = _note.items![idx];
                           return KeyedSubtree(
                             key: ValueKey(item),
-                            child: Row(
-                              children: [
-                                Checkbox(
-                                  value: item.coche,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      item.coche = v ?? false;
-                                      _scheduleAutosave();
-                                    });
-                                  },
-                                ),
-                                Expanded(
-                                  child: TextFormField(
-                                    initialValue: item.texte,
-                                    decoration: const InputDecoration(hintText: 'Items', border: InputBorder.none),
-                                    onChanged: (v) {
-                                      item.texte = v;
-                                      _scheduleAutosave();
-                                    },
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close, size: 20, color: Colors.grey),
-                                  onPressed: () {
-                                    setState(() {
-                                      _note.items!.removeAt(idx);
-                                      _scheduleAutosave();
-                                    });
-                                  },
-                                ),
-                              ],
+                            child: ChecklistItemTile(
+                              item: item,
+                              onCheckChanged: (v) {
+                                setState(() {
+                                  item.coche = v ?? false;
+                                  _scheduleAutosave();
+                                });
+                              },
+                              onTextChanged: (v) {
+                                item.texte = v;
+                                _scheduleAutosave();
+                              },
+                              onDelete: () {
+                                setState(() {
+                                  _note.items!.removeAt(idx);
+                                  _scheduleAutosave();
+                                });
+                              },
                             ),
                           );
                         },
@@ -233,32 +225,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
                 ),
               ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 48,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: NoteColor.values.map((col) {
-                  final isSel = _note.couleur == col;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _note.couleur = col;
-                        _scheduleAutosave();
-                      });
-                    },
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      decoration: BoxDecoration(
-                        color: col.background,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: isSel ? Colors.black87 : Colors.grey.shade400, width: isSel ? 3 : 1),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
+            ColorPicker(
+              selectedColor: _note.couleur,
+              onColorSelected: (col) {
+                setState(() {
+                  _note.couleur = col;
+                  _scheduleAutosave();
+                });
+              },
             ),
           ],
         ),
