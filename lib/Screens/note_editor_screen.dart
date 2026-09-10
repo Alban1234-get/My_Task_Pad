@@ -4,6 +4,7 @@ import '../models/note.dart';
 import '../models/checklist_item.dart';
 import '../models/note_color.dart';
 import '../services/note_repository.dart';
+import '../theme/note_colors.dart';
 
 /// Écran d'édition ou de création de note (texte ou checklist) avec autosave.
 class NoteEditorScreen extends StatefulWidget {
@@ -70,19 +71,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
     }
   }
 
-  Color _getColor(NoteColor c) {
-    switch (c) {
-      case NoteColor.jaune: return const Color(0xFFFFEB3B);
-      case NoteColor.orange: return const Color(0xFFFFB74D);
-      case NoteColor.rose: return const Color(0xFFF48FB1);
-      case NoteColor.violet: return const Color(0xFFCE93D8);
-      case NoteColor.bleu: return const Color(0xFF90CAF9);
-      case NoteColor.vertClair: return const Color(0xFFC5E1A5);
-      case NoteColor.vertFonce: return const Color(0xFFA5D6A7);
-      case NoteColor.gris: return const Color(0xFFE0E0E0);
-      case NoteColor.blanc: return const Color(0xFFFFFFFF);
-    }
-  }
+
 
   void _onChanged() {
     _note.titre = _titleCtrl.text;
@@ -206,7 +195,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
                                 Expanded(
                                   child: TextFormField(
                                     initialValue: item.texte,
-                                    decoration: const InputDecoration(hintText: 'Élément', border: InputBorder.none),
+                                    decoration: const InputDecoration(hintText: 'Items', border: InputBorder.none),
                                     onChanged: (v) {
                                       item.texte = v;
                                       _scheduleAutosave();
@@ -262,7 +251,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> with WidgetsBinding
                       height: 36,
                       margin: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
-                        color: _getColor(col),
+                        color: col.background,
                         shape: BoxShape.circle,
                         border: Border.all(color: isSel ? Colors.black87 : Colors.grey.shade400, width: isSel ? 3 : 1),
                       ),

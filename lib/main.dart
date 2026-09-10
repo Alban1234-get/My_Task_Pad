@@ -4,6 +4,7 @@ import 'models/note.dart';
 import 'models/checklist_item.dart';
 import 'models/note_color.dart';
 import 'package:my_task_pad/Screens/home_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,10 +27,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Mon Bloc Note',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: HomeScreen(),
+      theme: AppTheme.light(),
+      home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

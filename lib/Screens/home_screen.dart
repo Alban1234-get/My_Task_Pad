@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/note.dart';
 import '../models/note_color.dart';
 import '../services/note_repository.dart';
+import '../theme/note_colors.dart';
 import 'note_editor_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,19 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Color _getColor(NoteColor c) {
-    switch (c) {
-      case NoteColor.jaune: return const Color(0xFFFFEB3B);
-      case NoteColor.orange: return const Color(0xFFFFB74D);
-      case NoteColor.rose: return const Color(0xFFF48FB1);
-      case NoteColor.violet: return const Color(0xFFCE93D8);
-      case NoteColor.bleu: return const Color(0xFF90CAF9);
-      case NoteColor.vertClair: return const Color(0xFFC5E1A5);
-      case NoteColor.vertFonce: return const Color(0xFFA5D6A7);
-      case NoteColor.gris: return const Color(0xFFE0E0E0);
-      case NoteColor.blanc: return const Color(0xFFFFFFFF);
-    }
-  }
+
 
   String _formatDate(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
 
@@ -58,9 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: const InputDecoration(
                   hintText: 'Rechercher...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.white70),
+                  hintStyle: TextStyle(color: Colors.black54),
                 ),
-                style: const TextStyle(color: Colors.white, fontSize: 18),
+                style: const TextStyle(color: Colors.black, fontSize: 18),
                 onChanged: (_) => _loadNotes(),
               )
             : const Text('Mes Notes'),
@@ -110,6 +99,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     preview = '$checked/${items.length} items';
                   }
 
+                  final textColor = note.couleur.onBackground;
+
                   return InkWell(
                     onTap: () async {
                       await Navigator.push(
@@ -123,21 +114,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: _getColor(note.couleur),
+                        color: note.couleur.background,
                         borderRadius: BorderRadius.circular(12),
+                        border: note.couleur == NoteColor.blanc
+                            ? Border.all(color: Colors.grey.shade300, width: 1)
+                            : null,
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
                       ),
                       padding: const EdgeInsets.all(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(note.titre, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(
+                            note.titre,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+                          ),
                           const SizedBox(height: 8),
-                          Expanded(child: Text(preview, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, color: Colors.black87))),
+                          Expanded(
+                            child: Text(
+                              preview,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.85)),
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.bottomRight,
-                            child: Text(_formatDate(note.dateModification), style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                            child: Text(
+                              _formatDate(note.dateModification),
+                              style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.7)),
+                            ),
                           ),
                         ],
                       ),
