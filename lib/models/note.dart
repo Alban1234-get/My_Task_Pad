@@ -1,18 +1,43 @@
 // Classe Note avec ses propiétés 
 
-import 'package:my_task_pad/Models/checklis_item.dart';
+import 'package:hive/hive.dart';
+import 'checklist_item.dart';
 import 'note_color.dart';
 
-enum NoteType { texte, checklist } // soit un texte soit une checklist
+part 'note.g.dart';
 
+@HiveType(typeId: 3)
+enum NoteType { 
+  @HiveField(0)
+  texte, 
+  @HiveField(1)
+  checklist 
+} // soit un texte soit une checklist
+
+@HiveType(typeId: 2)
 class Note {
+  @HiveField(0)
   String id;
+
+  @HiveField(1)
   String titre;
+
+  @HiveField(2)
   NoteType type;
+
+  @HiveField(3)
   String? contenuTexte;
-  List<ChecklisItem>? items;
+
+  @HiveField(4)
+  List<ChecklistItem>? items;
+
+  @HiveField(5)
   NoteColor couleur;
+
+  @HiveField(6)
   DateTime dateCreation;
+
+  @HiveField(7)
   DateTime dateModification;
 
   Note({
